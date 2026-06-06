@@ -1,6 +1,6 @@
 services:
-  app-escolar:
+  app-ecofactory:
     build: .
     ports:
       - "8080:8080"
-    container_name: servlet-container
+    container_name: ecofactory-container
