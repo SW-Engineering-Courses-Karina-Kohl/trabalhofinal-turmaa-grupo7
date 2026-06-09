@@ -17,3 +17,4 @@ public class SetorConfiguracaoTest {
         assertEquals(300.0, config.getLimiteMensal(), "O limite mensal deve ser 300.0");
     }
 }
+
