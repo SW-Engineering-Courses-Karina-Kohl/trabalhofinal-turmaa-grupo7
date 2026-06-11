@@ -24,10 +24,10 @@
         </tr>
         <c:forEach var="item" items="${resultados}">
             <tr>
-                <td>${item.setorConfig.nome}</td>
+                <td>${item.config.nomeSetor}</td>
                 <td>${item.consumoTotalKwh}</td>
                 <td>${item.emissaoTotalCo2}</td>
-                <td><b>${item.statusAmbiental}</b></td>
+                <td><b>${item.status}</b></td>
             </tr>
         </c:forEach>
     </table>
