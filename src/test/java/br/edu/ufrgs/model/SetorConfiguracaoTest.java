@@ -12,7 +12,7 @@ public class SetorConfiguracaoTest {
         SetorConfiguracao config = new SetorConfiguracao("Montagem", 0.045, 300.0);
 
         // verifica se os valores foram salvos corretamente
-        assertEquals("Montagem", config.getNome(), "O nome do setor deve ser Montagem");
+        assertEquals("Montagem", config.getNomeSetor(), "O nome do setor deve ser Montagem");
         assertEquals(0.045, config.getFatorEmissao(), "O fator de emissão deve ser 0.045");
         assertEquals(300.0, config.getLimiteMensal(), "O limite mensal deve ser 300.0");
     }
