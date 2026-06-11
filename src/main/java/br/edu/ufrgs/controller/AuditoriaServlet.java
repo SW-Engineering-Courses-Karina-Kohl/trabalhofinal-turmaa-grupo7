@@ -62,3 +62,4 @@ public class AuditoriaServlet extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/resultadoAuditoria.jsp").forward(request, response);
     }
 }
+     
