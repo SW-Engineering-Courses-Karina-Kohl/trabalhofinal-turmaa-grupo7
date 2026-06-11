@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class AuditoriaCarbonoService {
 
-    // Mapas para acesso rápido O(1)
+    // Mapas para acesso rápido O(1);
     private Map<String, SetorConfiguracao> setoresConfig;
     private Map<String, SetorTotalizador> totalizadores;
     private ValidadorDados validador;
@@ -37,7 +37,7 @@ public class AuditoriaCarbonoService {
     }
 
     /**
-     * RF02 e RF03: Processa os consumos individuais, validando se o setor existe.
+     * RF02 e RF03:Processa os consumos individuais, validando se o setor existe.
      */
     public void processarConsumo(List<ConsumoMaquina> consumos) {
         for (ConsumoMaquina consumo : consumos) {
@@ -53,7 +53,7 @@ public class AuditoriaCarbonoService {
     }
 
     /**
-     * RF03 e RF04: Executa a matemática final e gera a lista para exportação/exibição.
+     * RF03 e RF04:Executa a matemática final e gera a lista para exportação/exibição.
      */
     public List<SetorTotalizador> consolidarResultados() {
         List<SetorTotalizador> resultados = new ArrayList<>();
