@@ -1,5 +1,5 @@
 package br.edu.ufrgs.controller;
-
+/*
 import br.edu.ufrgs.model.ConsumoMaquina;
 import br.edu.ufrgs.model.SetorConfiguracao;
 import br.edu.ufrgs.model.SetorTotalizador;
@@ -62,3 +62,4 @@ public class AuditoriaServlet extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/resultadoAuditoria.jsp").forward(request, response);
     }
 }
+     */
