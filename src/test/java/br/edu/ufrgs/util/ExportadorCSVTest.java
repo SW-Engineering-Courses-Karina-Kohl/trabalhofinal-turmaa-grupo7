@@ -37,7 +37,6 @@ class ExportadorCSVTest {
         Path arquivo = Path.of(caminhoArquivo);
         assertTrue(Files.exists(arquivo));
         
-        // Lê o conteúdo do arquivo
         String conteudo = Files.readString(arquivo);
         
         assertNotNull(conteudo);

@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Locale;
 
 public class ExportadorCSV {
     
@@ -20,7 +21,7 @@ public class ExportadorCSV {
             writer.println("setor,consumo_total_kwh,emissao_total_co2_kg,status_ambiental");
             
             for (SetorTotalizador setor : resultados) {
-                writer.printf("%s,%.2f,%.2f,%s%n",
+                writer.printf(Locale.US, "%s,%.2f,%.2f,%s%n", // correçao para os testes
                     setor.getConfig().getNomeSetor(),
                     setor.getConsumoTotalKwh(),
                     setor.getEmissaoTotalCo2(),
