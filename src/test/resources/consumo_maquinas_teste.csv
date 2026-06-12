@@ -1,0 +1,6 @@
+maquina_id,setor,consumo_kwh,horas_ativas
+M_01,Usinagem,1200.50,160
+M_02,Usinagem,1150.75,158
+M_03,Montagem,850.40,160
+M_04,Fundicao,650.25,140
+M_05,Expedicao,450.30,120

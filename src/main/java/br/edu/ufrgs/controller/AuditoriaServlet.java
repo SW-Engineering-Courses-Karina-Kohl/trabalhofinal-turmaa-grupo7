@@ -7,11 +7,11 @@ import br.edu.ufrgs.service.AuditoriaCarbonoService;
 import br.edu.ufrgs.util.ExportadorCSV;
 import br.edu.ufrgs.util.LeitorCSV;
 
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +59,7 @@ public class AuditoriaServlet extends HttpServlet {
     private void exibirResultados(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setAttribute("resultados", auditoriaService.consolidarResultados());
         request.setAttribute("erros", auditoriaService.getLogsValidacao());
-        request.getRequestDispatcher("/resultadoAuditoria.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/resultadoAuditoria.jsp").forward(request, response);
     }
 }
+     

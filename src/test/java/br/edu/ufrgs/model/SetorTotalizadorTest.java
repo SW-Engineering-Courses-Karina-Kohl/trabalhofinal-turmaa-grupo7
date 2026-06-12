@@ -52,4 +52,16 @@ public class SetorTotalizadorTest {
         total.calcularEmissao();
         assertEquals(StatusAmbiental.ALERTA, total.getStatus());
     }
+
+    @Test
+    void deveLancarExcecaoQuandoConfigForNula(){
+        assertThrows(IllegalArgumentException.class, () -> new SetorTotalizador(null));
+    }
+
+    @Test
+    void deveRetornarConfigInformadaNoConstrutor(){
+        SetorConfiguracao cfg = new SetorConfiguracao("Usinagem", 0.092, 2000.0);
+        SetorTotalizador total = new SetorTotalizador(cfg);
+        assertEquals(cfg, total.getConfig());
+    }
 }
