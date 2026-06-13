@@ -14,6 +14,12 @@ import java.util.Map;
 
 public class LeitorCSV {
 
+    private final List<String> logsLeitura = new ArrayList<>();
+
+    public List<String> getLogsLeitura() {
+        return new ArrayList<>(logsLeitura);
+    }
+
     public Map<String, SetorConfiguracao> lerConfiguracoesSetores(String caminhoArquivo) {
         Map<String, SetorConfiguracao> configs = new HashMap<>();
 
@@ -22,17 +28,34 @@ public class LeitorCSV {
             br.readLine(); // pula cabeçalho
 
             String linha;
+            int numeroLinha = 1;
 
             while ((linha = br.readLine()) != null) {
+                numeroLinha++;
+
+                if (linha.trim().isEmpty()) {
+                    continue; // ignora linhas em branco
+                }
 
                 String[] dados = linha.split(",");
 
-                String setor = dados[0];
-                double fator = Double.parseDouble(dados[1]);
-                double limite = Double.parseDouble(dados[2]);
+                if (dados.length < 3) {
+                    registrarErro(numeroLinha, linha,
+                            "esperadas 3 colunas (setor,fator,limite)");
+                    continue;
+                }
 
-                configs.put(setor,
-                        new SetorConfiguracao(setor, fator, limite));
+                try {
+                    String setor = dados[0].trim();
+                    double fator = Double.parseDouble(dados[1].trim());
+                    double limite = Double.parseDouble(dados[2].trim());
+
+                    configs.put(setor,
+                            new SetorConfiguracao(setor, fator, limite));
+                } catch (NumberFormatException e) {
+                    registrarErro(numeroLinha, linha,
+                            "fator/limite não numérico");
+                }
             }
 
         } catch (IOException e) {
@@ -51,17 +74,34 @@ public class LeitorCSV {
             br.readLine();
 
             String linha;
+            int numeroLinha = 1;
 
             while ((linha = br.readLine()) != null) {
+                numeroLinha++;
+
+                if (linha.trim().isEmpty()) {
+                    continue; // ignora linhas em branco
+                }
 
                 String[] dados = linha.split(",");
 
-                lista.add(new ConsumoMaquina(
-                        dados[0],
-                        dados[1],
-                        Double.parseDouble(dados[2]),
-                        Integer.parseInt(dados[3])
-                ));
+                if (dados.length < 4) {
+                    registrarErro(numeroLinha, linha,
+                            "esperadas 4 colunas (maquina_id,setor,consumo_kwh,horas_ativas)");
+                    continue;
+                }
+
+                try {
+                    lista.add(new ConsumoMaquina(
+                            dados[0].trim(),
+                            dados[1].trim(),
+                            Double.parseDouble(dados[2].trim()),
+                            Integer.parseInt(dados[3].trim())
+                    ));
+                } catch (NumberFormatException e) {
+                    registrarErro(numeroLinha, linha,
+                            "consumo_kwh/horas_ativas não numérico");
+                }
             }
 
         } catch (IOException e) {
@@ -69,5 +109,10 @@ public class LeitorCSV {
         }
 
         return lista;
+    }
+
+    private void registrarErro(int numeroLinha, String conteudo, String motivo) {
+        logsLeitura.add(String.format(
+                "[ERRO] Linha %d ignorada (%s): %s", numeroLinha, motivo, conteudo));
     }
 }
