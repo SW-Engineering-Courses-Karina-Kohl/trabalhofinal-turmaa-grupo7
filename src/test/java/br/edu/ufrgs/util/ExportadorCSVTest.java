@@ -28,12 +28,10 @@ class ExportadorCSVTest {
         List<SetorTotalizador> resultados = new ArrayList<>();
         resultados.add(usinagem);
         
-        // Testa geração do CSV em arquivo
         ExportadorCSV exportador = new ExportadorCSV();
         String caminhoArquivo = tempDir.resolve("relatorio.csv").toString();
         exportador.gerarRelatorioCarbono(resultados, caminhoArquivo);
         
-        // Verifica se o arquivo foi criado
         Path arquivo = Path.of(caminhoArquivo);
         assertTrue(Files.exists(arquivo));
         
@@ -42,7 +40,7 @@ class ExportadorCSVTest {
         assertNotNull(conteudo);
         assertTrue(conteudo.contains("setor,consumo_total_kwh,emissao_total_co2_kg,status_ambiental"));
         assertTrue(conteudo.contains("Usinagem"));
-        assertTrue(conteudo.contains("2351.25")); // 1200.50 + 1150.75
+        assertTrue(conteudo.contains("2351.25"));
     }
     
     @Test
@@ -75,9 +73,23 @@ class ExportadorCSVTest {
         assertTrue(conteudo.contains("Usinagem"));
         assertTrue(conteudo.contains("Montagem"));
         assertTrue(conteudo.contains("2351.25"));
-        assertTrue(conteudo.contains("1550.50")); // 800.00 + 750.50
+        assertTrue(conteudo.contains("1550.50"));
     }
     
+    @Test
+    void testGerarRelatorioCarbonoCaminhoInvalido_naoLancaExcecao() {
+        SetorConfiguracao config = new SetorConfiguracao("Usinagem", 0.85, 10000.00);
+        SetorTotalizador usinagem = new SetorTotalizador(config);
+        usinagem.calcularEmissao();
+        List<SetorTotalizador> resultados = new ArrayList<>();
+        resultados.add(usinagem);
+
+        ExportadorCSV exportador = new ExportadorCSV();
+        String caminhoInvalido = tempDir.toString();
+
+        assertDoesNotThrow(() -> exportador.gerarRelatorioCarbono(resultados, caminhoInvalido));
+    }
+
     @Test
     void testGerarRelatorioCarbonoComListaVazia() throws Exception {
         List<SetorTotalizador> resultados = new ArrayList<>();
@@ -91,7 +103,6 @@ class ExportadorCSVTest {
         
         String conteudo = Files.readString(arquivo);
         assertTrue(conteudo.contains("setor,consumo_total_kwh,emissao_total_co2_kg,status_ambiental"));
-        // Deve ter apenas o cabeçalho
         assertEquals(1, conteudo.split("\n").length);
     }
 }
