@@ -32,12 +32,12 @@ O projeto foi estruturado seguindo o padrão **Model-View-Controller (MVC)** par
 
 ## ⚙️ Regras de Negócio e Motor de Cálculo
 
-### 1. Motor de Cálculo (RF03)
+### 1. Motor de Cálculo
 A emissão de CO₂ de cada setor é calculada consolidando o consumo de todas as suas máquinas através da fórmula:
 
 > **Emissão do Setor** = Σ (Consumo da Máquina em kWh) × Fator de Emissão do Setor
 
-### 2. Matriz de Classificação Ambiental (RF04)
+### 2. Matriz de Classificação Ambiental
 Após o cálculo, o sistema avalia o percentual de uso do limite mensal de emissão configurado para o setor e atribui um status:
 
 | Percentual de Uso | Status Ambiental | Ação Recomendada |
@@ -46,8 +46,8 @@ Após o cálculo, o sistema avalia o percentual de uso do limite mensal de emiss
 | **71% a 100%** | `ALERTA` | Revisar manutenção |
 | **Acima de 100%** | `ALTO_IMPACTO` | Plano de mitigação obrigatório |
 
-### 3. Validação Dinâmica (RF02)
-O sistema não possui dados fixos ("chumbados") no código. Todas as referências vêm do arquivo de configuração (`configuracoes.csv`). Se uma máquina referenciar um setor não cadastrado, o sistema ignora o registro e gera um **log de erro**, exibido na interface final.
+### 3. Validação Dinâmica
+O sistema não possui dados fixos no código. Todas as referências vêm do arquivo de configuração (`configuracoes.csv`). Se uma máquina referenciar um setor não cadastrado, o sistema ignora o registro e gera um **log de erro**, exibido na interface final.
 
 ---
 
@@ -71,6 +71,7 @@ O ambiente da aplicação é totalmente conteinerizado. Certifique-se de ter o [
 
     ```
 
-    Integrantes do Grupo: Aline Cardoso, Antônio Dário, Jean Carlo, Lucye Milach, Valentina Scolari
+
+   Integrantes do Grupo: Aline Cardoso, Antônio Dário, Jean Carlo, Lucye Milach, Valentina Scolari.
 
    
