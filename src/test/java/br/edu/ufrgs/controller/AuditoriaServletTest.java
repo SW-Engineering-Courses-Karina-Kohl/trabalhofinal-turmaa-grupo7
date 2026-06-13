@@ -1,36 +1,73 @@
 package br.edu.ufrgs.controller;
 
-import br.edu.ufrgs.model.ConsumoMaquina;
-import br.edu.ufrgs.model.SetorConfiguracao;
-import br.edu.ufrgs.model.SetorTotalizador;
-import br.edu.ufrgs.service.AuditoriaCarbonoService;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class AuditoriaServletTest {
 
-    private final Map<String, Object> atributos = new HashMap<>();
+    private final Map<String, Object> atributosRequest = new HashMap<>();
+    private final Map<String, Object> atributosSession = new HashMap<>();
     private boolean forwardChamado = false;
+    private String dispatcherPath = null;
+    private File tempRelatorio;
 
     private final RequestDispatcher dispatcherStub = new RequestDispatcher() {
-        @Override public void forward(jakarta.servlet.ServletRequest q, jakarta.servlet.ServletResponse r) { forwardChamado = true; }
+        @Override public void forward(jakarta.servlet.ServletRequest q, jakarta.servlet.ServletResponse r) { 
+            forwardChamado = true; 
+        }
         @Override public void include(jakarta.servlet.ServletRequest q, jakarta.servlet.ServletResponse r) {}
     };
 
+    private final HttpSession sessionStub = new HttpSession() {
+        @Override public long getCreationTime() { return 0; }
+        @Override public String getId() { return "stub-session"; }
+        @Override public long getLastAccessedTime() { return 0; }
+        @Override public ServletContext getServletContext() { return null; }
+        @Override public void setMaxInactiveInterval(int interval) {}
+        @Override public int getMaxInactiveInterval() { return 0; }
+        @Override public Object getAttribute(String name) { return atributosSession.get(name); }
+        @Override public Enumeration<String> getAttributeNames() { return Collections.enumeration(atributosSession.keySet()); }
+        @Override public void setAttribute(String name, Object value) { atributosSession.put(name, value); }
+        @Override public void removeAttribute(String name) { atributosSession.remove(name); }
+        @Override public void invalidate() {}
+        @Override public boolean isNew() { return false; }
+    };
+
     private final HttpServletRequest requestStub = new HttpServletRequest() {
-        @Override public void setAttribute(String n, Object v) { atributos.put(n, v); }
-        @Override public Object getAttribute(String n) { return atributos.get(n); }
-        @Override public RequestDispatcher getRequestDispatcher(String p) { return dispatcherStub; }
+        @Override public void setAttribute(String n, Object v) { atributosRequest.put(n, v); }
+        @Override public Object getAttribute(String n) { return atributosRequest.get(n); }
+        @Override public RequestDispatcher getRequestDispatcher(String p) { 
+            dispatcherPath = p;
+            return dispatcherStub; 
+        }
+        @Override public HttpSession getSession() { return sessionStub; }
+        @Override public HttpSession getSession(boolean create) { return sessionStub; }
+        @Override public String getParameter(String n) { 
+            if("acao".equals(n)) return parametroAcao;
+            return null;
+        }
+        @Override public Part getPart(String n) { 
+            if("fileConfig".equals(n)) return partConfigStub;
+            if("fileMaquinas".equals(n)) return partMaquinasStub;
+            return null; 
+        }
+        
         @Override public String getAuthType() { return null; }
         @Override public jakarta.servlet.http.Cookie[] getCookies() { return null; }
         @Override public long getDateHeader(String n) { return -1; }
@@ -50,8 +87,6 @@ class AuditoriaServletTest {
         @Override public String getRequestURI() { return "/auditoria"; }
         @Override public StringBuffer getRequestURL() { return new StringBuffer("/auditoria"); }
         @Override public String getServletPath() { return ""; }
-        @Override public jakarta.servlet.http.HttpSession getSession(boolean c) { return null; }
-        @Override public jakarta.servlet.http.HttpSession getSession() { return null; }
         @Override public String changeSessionId() { return null; }
         @Override public boolean isRequestedSessionIdValid() { return false; }
         @Override public boolean isRequestedSessionIdFromCookie() { return false; }
@@ -59,8 +94,7 @@ class AuditoriaServletTest {
         @Override public boolean authenticate(HttpServletResponse r) { return false; }
         @Override public void login(String u, String p) {}
         @Override public void logout() {}
-        @Override public Collection<jakarta.servlet.http.Part> getParts() { return null; }
-        @Override public jakarta.servlet.http.Part getPart(String n) { return null; }
+        @Override public Collection<Part> getParts() { return null; }
         @Override public <T extends jakarta.servlet.http.HttpUpgradeHandler> T upgrade(Class<T> c) { return null; }
         @Override public Enumeration<String> getAttributeNames() { return Collections.emptyEnumeration(); }
         @Override public String getCharacterEncoding() { return "UTF-8"; }
@@ -69,7 +103,6 @@ class AuditoriaServletTest {
         @Override public long getContentLengthLong() { return 0; }
         @Override public String getContentType() { return null; }
         @Override public jakarta.servlet.ServletInputStream getInputStream() { return null; }
-        @Override public String getParameter(String n) { return null; }
         @Override public Enumeration<String> getParameterNames() { return Collections.emptyEnumeration(); }
         @Override public String[] getParameterValues(String n) { return null; }
         @Override public Map<String, String[]> getParameterMap() { return Collections.emptyMap(); }
@@ -80,7 +113,7 @@ class AuditoriaServletTest {
         @Override public java.io.BufferedReader getReader() { return null; }
         @Override public String getRemoteAddr() { return "127.0.0.1"; }
         @Override public String getRemoteHost() { return "localhost"; }
-        @Override public void removeAttribute(String n) { atributos.remove(n); }
+        @Override public void removeAttribute(String n) { atributosRequest.remove(n); }
         @Override public Locale getLocale() { return Locale.getDefault(); }
         @Override public Enumeration<Locale> getLocales() { return Collections.enumeration(List.of(Locale.getDefault())); }
         @Override public boolean isSecure() { return false; }
@@ -100,7 +133,12 @@ class AuditoriaServletTest {
         @Override public jakarta.servlet.ServletConnection getServletConnection() { return null; }
     };
 
+    private String contentTypeDefinido = null;
+    private String headerDefinido = null;
+
     private final HttpServletResponse responseStub = new HttpServletResponse() {
+        @Override public void setContentType(String t) { contentTypeDefinido = t; }
+        @Override public void setHeader(String n, String v) { headerDefinido = v; }
         @Override public void addCookie(jakarta.servlet.http.Cookie c) {}
         @Override public boolean containsHeader(String n) { return false; }
         @Override public String encodeURL(String u) { return u; }
@@ -110,7 +148,6 @@ class AuditoriaServletTest {
         @Override public void sendRedirect(String l) {}
         @Override public void setDateHeader(String n, long d) {}
         @Override public void addDateHeader(String n, long d) {}
-        @Override public void setHeader(String n, String v) {}
         @Override public void addHeader(String n, String v) {}
         @Override public void setIntHeader(String n, int v) {}
         @Override public void addIntHeader(String n, int v) {}
@@ -121,12 +158,17 @@ class AuditoriaServletTest {
         @Override public Collection<String> getHeaderNames() { return List.of(); }
         @Override public String getCharacterEncoding() { return "UTF-8"; }
         @Override public String getContentType() { return "text/html"; }
-        @Override public jakarta.servlet.ServletOutputStream getOutputStream() { return null; }
+        @Override public jakarta.servlet.ServletOutputStream getOutputStream() { 
+            return new jakarta.servlet.ServletOutputStream() {
+                @Override public void write(int b) {}
+                @Override public boolean isReady() { return true; }
+                @Override public void setWriteListener(jakarta.servlet.WriteListener writeListener) {}
+            };
+        }
         @Override public java.io.PrintWriter getWriter() { return null; }
         @Override public void setCharacterEncoding(String e) {}
         @Override public void setContentLength(int l) {}
         @Override public void setContentLengthLong(long l) {}
-        @Override public void setContentType(String t) {}
         @Override public void setBufferSize(int s) {}
         @Override public int getBufferSize() { return 0; }
         @Override public void flushBuffer() {}
@@ -137,109 +179,138 @@ class AuditoriaServletTest {
         @Override public Locale getLocale() { return Locale.getDefault(); }
     };
 
-    // ServletContext stub — só getRealPath é chamado pelo servlet
-    private final ServletContext contextStub = new ServletContext() {
-        @Override public String getRealPath(String p) { return "/tmp" + p; }
-        @Override public String getContextPath() { return ""; }
-        @Override public ServletContext getContext(String u) { return null; }
-        @Override public int getMajorVersion() { return 6; }
-        @Override public int getMinorVersion() { return 0; }
-        @Override public int getEffectiveMajorVersion() { return 6; }
-        @Override public int getEffectiveMinorVersion() { return 0; }
-        @Override public String getMimeType(String f) { return null; }
-        @Override public Set<String> getResourcePaths(String p) { return null; }
-        @Override public java.net.URL getResource(String p) { return null; }
-        @Override public java.io.InputStream getResourceAsStream(String p) { return null; }
-        @Override public RequestDispatcher getRequestDispatcher(String p) { return null; }
-        @Override public RequestDispatcher getNamedDispatcher(String n) { return null; }
-        @Override public void log(String m) {}
-        @Override public void log(String m, Throwable t) {}
-        @Override public String getServerInfo() { return "stub"; }
-        @Override public String getInitParameter(String n) { return null; }
-        @Override public Enumeration<String> getInitParameterNames() { return Collections.emptyEnumeration(); }
-        @Override public boolean setInitParameter(String n, String v) { return false; }
-        @Override public Object getAttribute(String n) { return null; }
-        @Override public Enumeration<String> getAttributeNames() { return Collections.emptyEnumeration(); }
-        @Override public void setAttribute(String n, Object o) {}
-        @Override public void removeAttribute(String n) {}
-        @Override public String getServletContextName() { return "stub"; }
-        @Override public jakarta.servlet.ServletRegistration.Dynamic addServlet(String n, String c) { return null; }
-        @Override public jakarta.servlet.ServletRegistration.Dynamic addServlet(String n, jakarta.servlet.Servlet s) { return null; }
-        @Override public jakarta.servlet.ServletRegistration.Dynamic addServlet(String n, Class<? extends jakarta.servlet.Servlet> c) { return null; }
-        @Override public jakarta.servlet.ServletRegistration.Dynamic addJspFile(String n, String f) { return null; }
-        @Override public <T extends jakarta.servlet.Servlet> T createServlet(Class<T> c) { return null; }
-        @Override public jakarta.servlet.ServletRegistration getServletRegistration(String n) { return null; }
-        @Override public Map<String, ? extends jakarta.servlet.ServletRegistration> getServletRegistrations() { return null; }
-        @Override public jakarta.servlet.FilterRegistration.Dynamic addFilter(String n, String c) { return null; }
-        @Override public jakarta.servlet.FilterRegistration.Dynamic addFilter(String n, jakarta.servlet.Filter f) { return null; }
-        @Override public jakarta.servlet.FilterRegistration.Dynamic addFilter(String n, Class<? extends jakarta.servlet.Filter> c) { return null; }
-        @Override public <T extends jakarta.servlet.Filter> T createFilter(Class<T> c) { return null; }
-        @Override public jakarta.servlet.FilterRegistration getFilterRegistration(String n) { return null; }
-        @Override public Map<String, ? extends jakarta.servlet.FilterRegistration> getFilterRegistrations() { return null; }
-        @Override public jakarta.servlet.SessionCookieConfig getSessionCookieConfig() { return null; }
-        @Override public void setSessionTrackingModes(Set<jakarta.servlet.SessionTrackingMode> m) {}
-        @Override public Set<jakarta.servlet.SessionTrackingMode> getDefaultSessionTrackingModes() { return null; }
-        @Override public Set<jakarta.servlet.SessionTrackingMode> getEffectiveSessionTrackingModes() { return null; }
-        @Override public void addListener(String c) {}
-        @Override public <T extends EventListener> void addListener(T t) {}
-        @Override public void addListener(Class<? extends EventListener> c) {}
-        @Override public <T extends EventListener> T createListener(Class<T> c) { return null; }
-        @Override public jakarta.servlet.descriptor.JspConfigDescriptor getJspConfigDescriptor() { return null; }
-        @Override public ClassLoader getClassLoader() { return null; }
-        @Override public void declareRoles(String... r) {}
-        @Override public String getVirtualServerName() { return "stub"; }
-        @Override public int getSessionTimeout() { return 30; }
-        @Override public void setSessionTimeout(int t) {}
-        @Override public String getRequestCharacterEncoding() { return "UTF-8"; }
-        @Override public void setRequestCharacterEncoding(String e) {}
-        @Override public String getResponseCharacterEncoding() { return "UTF-8"; }
-        @Override public void setResponseCharacterEncoding(String e) {}
-    };
-
     private final ServletConfig configStub = new ServletConfig() {
         @Override public String getServletName() { return "AuditoriaServlet"; }
-        @Override public ServletContext getServletContext() { return contextStub; }
+        @Override public ServletContext getServletContext() { return null; }
         @Override public String getInitParameter(String n) { return null; }
         @Override public Enumeration<String> getInitParameterNames() { return Collections.emptyEnumeration(); }
     };
 
-    private static class ServiceStub extends AuditoriaCarbonoService {
-        @Override public void carregarConfiguracoes(Map<String, SetorConfiguracao> c) {}
-        @Override public void processarConsumo(List<ConsumoMaquina> m) {}
-        @Override public List<SetorTotalizador> consolidarResultados() { return List.of(); }
-        @Override public List<String> getLogsValidacao() { return List.of("log simulado"); }
-    }
-
     private AuditoriaServlet servlet;
+    private String parametroAcao = null;
+    private Part partConfigStub = null;
+    private Part partMaquinasStub = null;
 
     @BeforeEach
     void setUp() throws Exception {
         servlet = new AuditoriaServlet();
         servlet.init(configStub);
-        Field f = AuditoriaServlet.class.getDeclaredField("auditoriaService");
-        f.setAccessible(true);
-        f.set(servlet, new ServiceStub());
-        atributos.clear();
+        
+        atributosRequest.clear();
+        atributosSession.clear();
         forwardChamado = false;
+        dispatcherPath = null;
+        parametroAcao = null;
+        partConfigStub = null;
+        partMaquinasStub = null;
+        contentTypeDefinido = null;
+        headerDefinido = null;
     }
 
     @Test
-    void doGet_deveRedirecionarParaJSP() throws Exception {
+    void doGet_deveRedirecionarParaFormularioInicial() throws Exception {
         servlet.doGet(requestStub, responseStub);
         assertTrue(forwardChamado);
+        assertEquals("/WEB-INF/resultadoAuditoria.jsp", dispatcherPath);
     }
 
     @Test
-    void doGet_deveDefinirAtributosNaRequest() throws Exception {
+    void doGet_deveFazerDownloadSeAcaoForDownloadEArquivoExistir() throws Exception {
+        tempRelatorio = File.createTempFile("teste_relatorio", ".csv");
+        Files.writeString(tempRelatorio.toPath(), "teste,csv");
+        
+        parametroAcao = "download";
+        atributosSession.put("caminhoRelatorio", tempRelatorio.getAbsolutePath());
+        
         servlet.doGet(requestStub, responseStub);
-        assertNotNull(atributos.get("resultados"));
-        assertNotNull(atributos.get("erros"));
+        
+        assertEquals("text/csv", contentTypeDefinido);
+        assertEquals("attachment; filename=\"relatorio_auditoria.csv\"", headerDefinido);
+        
+        tempRelatorio.delete();
     }
 
     @Test
-    void doPost_deveDelegarParaDoGet() throws Exception {
+    void doPost_deveProcessarArquivosEDefinirAtributos() throws Exception {
+        String csvConfig = "nome_setor,fator_emissao,limite_mensal\nUsinagem,0.85,10000.00";
+        partConfigStub = criarPartStub(csvConfig);
+        
+        String csvMaquinas = "id,setor,consumo,horas\nM1,Usinagem,100,10";
+        partMaquinasStub = criarPartStub(csvMaquinas);
+
+        servlet.doPost(requestStub, responseStub);
+        
+        assertTrue(forwardChamado);
+        assertNotNull(atributosRequest.get("resultados"));
+        assertNotNull(atributosSession.get("caminhoRelatorio"));
+    }
+    
+    private Part criarPartStub(String conteudo) {
+        return new Part() {
+            @Override public InputStream getInputStream() { return new ByteArrayInputStream(conteudo.getBytes(StandardCharsets.UTF_8)); }
+            @Override public String getContentType() { return "text/csv"; }
+            @Override public String getName() { return "file"; }
+            @Override public String getSubmittedFileName() { return "teste.csv"; }
+            @Override public long getSize() { return conteudo.length(); }
+            @Override public void write(String s) {}
+            @Override public void delete() {}
+            @Override public String getHeader(String s) { return null; }
+            @Override public Collection<String> getHeaders(String s) { return null; }
+            @Override public Collection<String> getHeaderNames() { return null; }
+        };
+    }
+
+    @Test
+    void doGet_acaoDownloadSemRelatorioNaSessao_deveEncaminharParaJsp() throws Exception {
+        parametroAcao = "download";
+        servlet.doGet(requestStub, responseStub);
+        assertTrue(forwardChamado);
+        assertEquals("/WEB-INF/resultadoAuditoria.jsp", dispatcherPath);
+    }
+
+    @Test
+    void doGet_acaoDownloadComArquivoInexistente_deveEncaminharParaJsp() throws Exception {
+        parametroAcao = "download";
+        atributosSession.put("caminhoRelatorio", "caminho/que/nao/existe_xyz.csv");
+        servlet.doGet(requestStub, responseStub);
+        assertTrue(forwardChamado);
+        assertEquals("/WEB-INF/resultadoAuditoria.jsp", dispatcherPath);
+    }
+
+    @Test
+    void doPost_semArquivoConfig_naoProcessa() throws Exception {
+        partConfigStub = null;
+        partMaquinasStub = criarPartStub("id,setor,consumo,horas\nM1,Usinagem,100,10");
         servlet.doPost(requestStub, responseStub);
         assertTrue(forwardChamado);
-        assertNotNull(atributos.get("resultados"));
+        assertNull(atributosRequest.get("resultados"));
     }
+
+    @Test
+    void doPost_semArquivoMaquinas_naoProcessa() throws Exception {
+        partConfigStub = criarPartStub("nome_setor,fator_emissao,limite_mensal\nUsinagem,0.85,10000.00");
+        partMaquinasStub = null;
+        servlet.doPost(requestStub, responseStub);
+        assertTrue(forwardChamado);
+        assertNull(atributosRequest.get("resultados"));
+    }
+
+    @Test
+    void doPost_arquivoConfigVazio_naoProcessa() throws Exception {
+        partConfigStub = criarPartStub("");
+        partMaquinasStub = criarPartStub("id,setor,consumo,horas\nM1,Usinagem,100,10");
+        servlet.doPost(requestStub, responseStub);
+        assertTrue(forwardChamado);
+        assertNull(atributosRequest.get("resultados"));
+    }
+
+    @Test
+    void doPost_arquivoMaquinasVazio_naoProcessa() throws Exception {
+        partConfigStub = criarPartStub("nome_setor,fator_emissao,limite_mensal\nUsinagem,0.85,10000.00");
+        partMaquinasStub = criarPartStub("");
+        servlet.doPost(requestStub, responseStub);
+        assertTrue(forwardChamado);
+        assertNull(atributosRequest.get("resultados"));
+    }
+
 }
