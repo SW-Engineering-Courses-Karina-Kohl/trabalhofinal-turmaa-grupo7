@@ -280,20 +280,31 @@
                             </svg>
                             <span>Baixar relatório (CSV)</span>
                         </a>
-
-                        <c:if test="${not empty erros}">
-                            <div
-                                style="margin-top: 25px; background: #fff5f5; border-left: 4px solid #f56565; padding: 15px;">
-                                <h4 style="color: #c53030; margin-top: 0;">Inconsistências Encontradas:</h4>
-                                <ul style="color: #742a2a; font-family: monospace;">
-                                    <c:forEach var="erro" items="${erros}">
-                                        <li>${erro}</li>
-                                    </c:forEach>
-                                </ul>
-                            </div>
-                        </c:if>
                     </div>
+                </c:if>
 
+                <c:if test="${empty resultados and not empty mensagemSemDados}">
+                    <div class="resultados-section" id="relatorio-resultados">
+                        <div
+                            style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px;">
+                            <h4 style="color: #92400e; margin-top: 0;">Nenhuma linha válida encontrada</h4>
+                            <p style="color: #78350f; margin-bottom: 0;">${mensagemSemDados}</p>
+                        </div>
+                    </div>
+                </c:if>
+
+                <c:if test="${not empty erros}">
+                    <div style="margin-top: 25px; background: #fff5f5; border-left: 4px solid #f56565; padding: 15px;">
+                        <h4 style="color: #c53030; margin-top: 0;">Inconsistências Encontradas:</h4>
+                        <ul style="color: #742a2a; font-family: monospace;">
+                            <c:forEach var="erro" items="${erros}">
+                                <li>${erro}</li>
+                            </c:forEach>
+                        </ul>
+                    </div>
+                </c:if>
+
+                <c:if test="${not empty resultados or not empty mensagemSemDados}">
                     <script>
                         document.getElementById('relatorio-resultados').scrollIntoView({ behavior: 'smooth' });
                     </script>

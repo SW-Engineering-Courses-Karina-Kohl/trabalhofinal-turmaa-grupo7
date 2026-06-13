@@ -57,7 +57,7 @@ public class AuditoriaServlet extends HttpServlet {
             String caminhoExportacao = (String) request.getSession().getAttribute("caminhoRelatorio");
             if (caminhoExportacao != null && new File(caminhoExportacao).exists()) {
                 response.setContentType("text/csv");
-                response.setHeader("Content-Disposition", "attachment; filename=\"relatorio_auditoria.csv\"");
+                response.setHeader("Content-Disposition", "attachment; filename=\"relatorio_carbono.csv\"");
                 Files.copy(new File(caminhoExportacao).toPath(), response.getOutputStream());
                 return;
             }
@@ -91,19 +91,35 @@ public class AuditoriaServlet extends HttpServlet {
             Map<String, SetorConfiguracao> configs = leitor.lerConfiguracoesSetores(tempConfig.getAbsolutePath());
             List<ConsumoMaquina> maquinas = leitor.lerConsumoMaquinas(tempMaquinas.getAbsolutePath());
 
-            auditoriaService = new AuditoriaCarbonoService(); 
+            auditoriaService = new AuditoriaCarbonoService();
             auditoriaService.carregarConfiguracoes(configs);
             auditoriaService.processarConsumo(maquinas);
             List<SetorTotalizador> resultados = auditoriaService.consolidarResultados();
 
-            ExportadorCSV exportador = new ExportadorCSV();
-            exportador.gerarRelatorioCarbono(resultados, tempRelatorio.getAbsolutePath());
+            List<String> erros = new java.util.ArrayList<>(leitor.getLogsLeitura());
+            erros.addAll(auditoriaService.getLogsValidacao());
+            request.setAttribute("erros", erros);
 
-            request.getSession().setAttribute("caminhoRelatorio", tempRelatorio.getAbsolutePath());
+            // Só gera relatório/resultados se ambos os arquivos tiverem linhas válidas
+            if (configs.isEmpty()) {
+                request.setAttribute("mensagemSemDados",
+                        "O arquivo de configuração não possui nenhuma linha válida. "
+                        + "Verifique se enviou o arquivo correto (setor,fator,limite) no campo \"Configurações\".");
+                request.getSession().removeAttribute("caminhoRelatorio");
+                tempRelatorio.delete();
+            } else if (maquinas.isEmpty()) {
+                request.setAttribute("mensagemSemDados",
+                        "O arquivo de consumo não possui nenhuma linha válida. "
+                        + "Verifique se enviou o arquivo correto (maquina_id,setor,consumo_kwh,horas_ativas) no campo \"Consumo das Máquinas\".");
+                request.getSession().removeAttribute("caminhoRelatorio");
+                tempRelatorio.delete();
+            } else {
+                ExportadorCSV exportador = new ExportadorCSV();
+                exportador.gerarRelatorioCarbono(resultados, tempRelatorio.getAbsolutePath());
+                request.getSession().setAttribute("caminhoRelatorio", tempRelatorio.getAbsolutePath());
+                request.setAttribute("resultados", resultados);
+            }
 
-            request.setAttribute("resultados", resultados);
-            request.setAttribute("erros", auditoriaService.getLogsValidacao());
-            
             tempConfig.delete();
             tempMaquinas.delete();
         }
