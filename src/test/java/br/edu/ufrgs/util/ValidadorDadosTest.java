@@ -46,4 +46,17 @@ class ValidadorDadosTest {
         validador.limparLogs();
         assertFalse(validador.possuiErros());
     }
+
+    @Test
+    void setorVazioGeraErro(){
+        assertFalse(validador.setorValido("   ", configMap));
+        assertTrue(validador.possuiErros());
+        assertTrue(validador.getLogsErro().get(0).contains("Setor vazio ou nulo"));
+    }
+
+    @Test
+    void configMapNuloGeraErro(){
+        assertFalse(validador.setorValido("Usinagem", null));
+        assertTrue(validador.possuiErros());
+    }
 }
