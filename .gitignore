@@ -1,0 +1,12 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Compilados e Maven
+target/
+*.class
+
+# Logs e SO
+*.log
+.DS_Store
